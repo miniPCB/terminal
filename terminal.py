@@ -1,5 +1,6 @@
 import sys
 import os
+import subprocess
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QPlainTextEdit, QAction,
     QTabWidget, QWidget, QSplitter, QVBoxLayout, QHBoxLayout, QPushButton,
@@ -403,13 +404,64 @@ class MinipcbTerminal(QMainWindow):
             self.test_launcher.run_script(script_path)
             self.show_test_launcher()
 
+    def check_for_updates(self):
+        # Path to the local repository (assuming it's the current working directory)
+        repo_path = os.getcwd()
+
+        # Fetch updates from the remote repository
+        fetch_process = subprocess.run(['git', 'fetch'], cwd=repo_path, capture_output=True, text=True)
+
+        if fetch_process.returncode != 0:
+            QMessageBox.warning(self, "Update Error", f"Git fetch failed:\n{fetch_process.stderr}")
+            return
+
+        # Check if local repository is behind the remote
+        status_process = subprocess.run(
+            ['git', 'rev-list', '--count', 'HEAD..origin/main'],
+            cwd=repo_path,
+            capture_output=True,
+            text=True
+        )
+
+        if status_process.returncode != 0:
+            QMessageBox.warning(self, "Update Error", f"Git status failed:\n{status_process.stderr}")
+            return
+
+        behind_count = int(status_process.stdout.strip())
+
+        if behind_count > 0:
+            # Pull updates
+            pull_process = subprocess.run(['git', 'pull'], cwd=repo_path, capture_output=True, text=True)
+
+            if pull_process.returncode != 0:
+                QMessageBox.warning(self, "Update Error", f"Git pull failed:\n{pull_process.stderr}")
+                return
+
+            # Prompt the user to restart the application
+            reply = QMessageBox.question(
+                self,
+                "Updates Applied",
+                "Updates have been applied. The application needs to restart. Restart now?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+
+            if reply == QMessageBox.Yes:
+                self.restart_application()
+        else:
+            # No updates found
+            pass  # You can display a message if desired
+
+    def restart_application(self):
+        # Get the executable and arguments
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
 
 def main():
     app = QApplication(sys.argv)
     terminal = MinipcbTerminal()
+    terminal.check_for_updates()  # Check for updates before showing the window
     terminal.show()
     sys.exit(app.exec_())
-
 
 if __name__ == "__main__":
     main()
