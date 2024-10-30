@@ -173,9 +173,7 @@ class PythonEditor(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.tabs)
         self.setLayout(layout)
-        placeholder = QWidget()
-        placeholder.setStyleSheet("background-color: #282A36;")
-        self.tabs.addTab(placeholder, "Welcome")
+        self.new_file()
 
     def apply_dark_theme(self):
         self.setStyleSheet("""
@@ -185,6 +183,26 @@ class PythonEditor(QWidget):
             QTabBar::tab:hover { background: #50586C; }
             QPlainTextEdit { background-color: #282A36; color: #F8F8F2; }
         """)
+
+    def new_file(self):
+        editor = QPlainTextEdit()
+        editor.setFont(QFont("Cascadia Code", 12))
+        editor.setStyleSheet("background-color: #282A36; color: #F8F8F2;")
+        highlighter = PythonSyntaxHighlighter(editor.document())
+        self.is_saved[editor] = True
+
+        # Define a safe rehighlighting function to prevent potential recursion
+        def rehighlight_safely():
+            editor.blockSignals(True)
+            highlighter.rehighlight()
+            editor.blockSignals(False)
+
+        editor.textChanged.connect(rehighlight_safely)
+        editor.textChanged.connect(lambda: self.mark_unsaved(editor))
+
+        tab_index = self.tabs.addTab(editor, "New File")
+        self.tabs.setCurrentIndex(tab_index)
+        self.current_file_paths[editor] = None
 
     def open_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -264,9 +282,7 @@ class PythonEditor(QWidget):
             del self.current_file_paths[editor]
         self.tabs.removeTab(index)
         if self.tabs.count() == 0:
-            placeholder = QWidget()
-            placeholder.setStyleSheet("background-color: #282A36;")
-            self.tabs.addTab(placeholder, "Welcome")
+            self.new_file()
 
 
 class MinipcbTerminal(QMainWindow):
@@ -335,7 +351,13 @@ class MinipcbTerminal(QMainWindow):
         # File Menu (Create but do not add yet)
         self.file_menu = QMenu("File", self)
 
+        new_action = QAction("New", self)
+        new_action.setShortcut("Ctrl+N")
+        new_action.triggered.connect(self.editor.new_file)
+        self.file_menu.addAction(new_action)
+
         open_action = QAction("Open", self)
+        open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.editor.open_file)
         self.file_menu.addAction(open_action)
 
@@ -347,10 +369,6 @@ class MinipcbTerminal(QMainWindow):
         save_close_action = QAction("Save and Close", self)
         save_close_action.triggered.connect(self.editor.save_and_close)
         self.file_menu.addAction(save_close_action)
-
-        run_test_action = QAction("Run Test", self)
-        run_test_action.triggered.connect(self.select_and_run_test_script)
-        self.file_menu.addAction(run_test_action)
 
         # Add the File menu after the View menu if in Text Editor
         if isinstance(self.splitter.widget(0), PythonEditor):
@@ -398,11 +416,7 @@ class MinipcbTerminal(QMainWindow):
         self.remove_file_menu()
 
     def select_and_run_test_script(self):
-        script_path, _ = QFileDialog.getOpenFileName(
-            self, "Select Test Script", "", "Python Files (*.py);;All Files (*)")
-        if script_path:
-            self.test_launcher.run_script(script_path)
-            self.show_test_launcher()
+        pass  # Removed as "Run Test" is no longer part of the File menu
 
     def check_for_updates(self):
         # Path to the local repository (assuming it's the current working directory)
@@ -456,12 +470,14 @@ class MinipcbTerminal(QMainWindow):
         python = sys.executable
         os.execl(python, python, *sys.argv)
 
+
 def main():
     app = QApplication(sys.argv)
     terminal = MinipcbTerminal()
     terminal.check_for_updates()  # Check for updates before showing the window
     terminal.show()
     sys.exit(app.exec_())
+
 
 if __name__ == "__main__":
     main()
