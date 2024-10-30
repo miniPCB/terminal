@@ -81,11 +81,15 @@ class TestReportsWidget(QWidget):
         left_layout = QVBoxLayout(left_widget)
         left_layout.setAlignment(Qt.AlignTop)
         
+        # Barcode Input Label with dark mode styling
+        barcode_label = QLabel("Barcode Input:")
+        barcode_label.setStyleSheet("color: #F8F8F2; font-weight: bold; padding-bottom: 5px;")
+        left_layout.addWidget(barcode_label)
+
         # Barcode Input Field with dark mode
         self.barcode_input = QLineEdit()
         self.barcode_input.setPlaceholderText("Enter Barcode...")
         self.barcode_input.setStyleSheet("background-color: #3A3F4B; color: #F8F8F2; padding: 6px;")
-        left_layout.addWidget(QLabel("Barcode Input:"))
         left_layout.addWidget(self.barcode_input)
         
         # Connect barcode input to update_report_list
@@ -100,12 +104,16 @@ class TestReportsWidget(QWidget):
         self.load_button.clicked.connect(self.load_report)
         left_layout.addWidget(self.load_button)
         
-        # "Available Reports" Label and Report List Pane with dark mode
-        left_layout.addWidget(QLabel("Available Reports:"))
+        # Available Reports Label with dark mode styling
+        reports_label = QLabel("Available Reports:")
+        reports_label.setStyleSheet("color: #F8F8F2; font-weight: bold; padding-top: 10px; padding-bottom: 5px;")
+        left_layout.addWidget(reports_label)
+
+        # Report List Pane with dark mode
         self.report_list = QListWidget()
         self.report_list.setStyleSheet(
             "background-color: #282A36; color: #F8F8F2; padding: 6px; "
-            "border: 1px solid #5C5C5C; border-radius: 4px;"  # Add border styling
+            "border: 1px solid #5C5C5C; border-radius: 4px;"
         )
         self.report_list.itemDoubleClicked.connect(self.display_selected_report)
         left_layout.addWidget(self.report_list)
@@ -153,8 +161,8 @@ class TestReportsWidget(QWidget):
         # Add left and right sections to the main layout
         main_layout.addWidget(left_widget)
         main_layout.addWidget(self.right_tab_widget)
-
-        # Apply dark mode to the overall widget
+        
+        # Apply dark mode palette
         self.set_dark_palette()
 
     def set_dark_palette(self):
